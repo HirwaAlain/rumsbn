@@ -20,6 +20,9 @@ import rw.rura.rums.module.users.dto.*;
 import rw.rura.rums.module.users.entity.UserEntity;
 import rw.rura.rums.module.users.repository.UserRepository;
 
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
+
 import java.security.SecureRandom;
 import java.time.Instant;
 import java.util.Map;
@@ -77,14 +80,23 @@ public class UserService {
 
         userRepository.save(user);
 
-        EmailService.InviteResult inviteResult =
-                emailService.sendInvite(req.contactEmail(), req.name(), rumsEmail, tempPassword);
-
         auditService.log(actor, AuditAction.CREATE, AuditModule.USERS,
                 user.getId().toString(), user.getName(), request, null);
 
+        // Send invite email AFTER the transaction commits so the user row is
+        // guaranteed to exist in the DB before credentials arrive in the inbox.
+        final String contactEmail  = req.contactEmail();
+        final String displayName   = req.name();
+        final String loginEmail    = rumsEmail;
+        final String pw            = tempPassword;
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override public void afterCommit() {
+                emailService.sendInvite(contactEmail, displayName, loginEmail, pw);
+            }
+        });
+
         return new UserCreateResponse(UserResponse.fromEntity(user),
-                inviteResult.sent(), inviteResult.message());
+                true, "Invite will be delivered to " + req.contactEmail());
     }
 
     public UserResponse update(UUID id, UserUpdateRequest req, UserEntity actor, HttpServletRequest request) {
