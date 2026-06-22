@@ -194,10 +194,12 @@ public class ClmsCaseService {
             if (sector != null) predicates.add(cb.equal(root.get("sector"), sector));
             if (search != null && !search.isBlank()) {
                 String pattern = "%" + search.toLowerCase() + "%";
+                var assignedJoin = root.join("assignedTo", jakarta.persistence.criteria.JoinType.LEFT);
                 predicates.add(cb.or(
                         cb.like(cb.lower(root.get("caseNumber")), pattern),
                         cb.like(cb.lower(root.get("title")), pattern),
-                        cb.like(cb.lower(root.get("applicantName")), pattern)
+                        cb.like(cb.lower(root.get("applicantName")), pattern),
+                        cb.like(cb.lower(assignedJoin.get("name")), pattern)
                 ));
             }
             return predicates.isEmpty() ? null : cb.and(predicates.toArray(new Predicate[0]));

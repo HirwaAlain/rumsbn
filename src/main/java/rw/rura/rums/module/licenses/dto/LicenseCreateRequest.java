@@ -1,5 +1,6 @@
 package rw.rura.rums.module.licenses.dto;
 
+import jakarta.validation.constraints.FutureOrPresent;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PositiveOrZero;
@@ -17,7 +18,7 @@ public record LicenseCreateRequest(
         @NotNull LicenseCategory category,
         @NotNull Sector sector,
         @NotNull Province province,
-        @NotNull LocalDate issuedAt,
+        @NotNull @FutureOrPresent(message = "Issue date cannot be set to a past date") LocalDate issuedAt,
         @NotNull LocalDate expiresAt,
         @PositiveOrZero long annualFeeRwf
 ) {}
